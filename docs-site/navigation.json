@@ -98,6 +98,10 @@
             "href": "/inference/fasth3_omniref"
           },
           {
+            "label": "FastH3 OmniRef on Apple Silicon",
+            "href": "/inference/fasth3_omniref_mlx"
+          },
+          {
             "label": "DGX Spark tuning",
             "href": "/getting_started/installation/spark_performance"
           },
@@ -122,6 +126,10 @@
           }
         ],
         "display": "group"
+      },
+      {
+        "label": "PAN 2 text/image to video",
+        "href": "/inference/pan2"
       },
       {
         "label": "Examples",
@@ -246,8 +254,31 @@
         ]
       },
       {
+        "label": "PAN 2",
+        "display": "group",
+        "collapsed": true,
+        "items": [
+          {
+            "label": "PAN 2",
+            "href": "/cookbook/pan2/pan2"
+          },
+          {
+            "label": "Family guide",
+            "href": "/cookbook/pan2"
+          },
+          {
+            "label": "Model reference",
+            "href": "/inference/pan2"
+          }
+        ]
+      },
+      {
         "label": "FLUX",
         "href": "/cookbook/flux"
+      },
+      {
+        "label": "Qwen-Image-2.1",
+        "href": "/cookbook/qwen-image21"
       },
       {
         "label": "Stable Diffusion",
