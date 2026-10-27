@@ -49,6 +49,21 @@ def cuda_platform_plugin() -> str | None:
     return "fastvideo.platforms.cuda.CudaPlatform" if is_cuda else None
 
 
+def xpuml_platform_plugin() -> str | None:
+    """Detect Kunlun devices whose compute runtime implements torch.cuda."""
+    try:
+        from fastvideo.platforms.xpuml import XpumlCudaPlatform
+        if XpumlCudaPlatform.get_device_count() > 0:
+            logger.info("XPUML devices are available with the CUDA-compatible runtime")
+            return "fastvideo.platforms.xpuml.XpumlCudaPlatform"
+    except ImportError:
+        # torch_xmlir is only supplied by the Kunlun PyTorch distribution.
+        pass
+    except Exception as e:
+        logger.debug("XPUML platform is unavailable: %s", e)
+    return None
+
+
 def mps_platform_plugin() -> str | None:
     """Detect if MPS (Metal Performance Shaders) is available on macOS."""
     is_mps = False
@@ -142,6 +157,7 @@ def rocm_platform_plugin() -> str | None:
 
 
 builtin_platform_plugins = {
+    'xpuml': xpuml_platform_plugin,
     'cuda': cuda_platform_plugin,
     'rocm': rocm_platform_plugin,
     'mps': mps_platform_plugin,
@@ -161,6 +177,11 @@ def resolve_current_platform_cls_qualname() -> str:
 
     # Fall back to ROCm
     platform_cls_qualname = rocm_platform_plugin()
+    if platform_cls_qualname is not None:
+        return platform_cls_qualname
+
+    # Prefer native XPUML management over the NVIDIA compatibility library.
+    platform_cls_qualname = xpuml_platform_plugin()
     if platform_cls_qualname is not None:
         return platform_cls_qualname
 

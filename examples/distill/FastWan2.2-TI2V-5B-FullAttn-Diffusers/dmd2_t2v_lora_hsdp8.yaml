@@ -1,0 +1,101 @@
+# XPU adaptation run: initialize all DMD2 roles from the local FastWan checkpoint.
+# The launcher resolves these paths relative to the repository's parent directory.
+models:
+  student:
+    _target_: fastvideo.train.models.wan.WanModel
+    init_from: ../FastWan2.2-TI2V-5B-FullAttn-Diffusers
+    trainable: true
+    attention_backend: FLASH_ATTN
+    flow_shift: 8
+    lora:
+      enable: true
+      rank: 8
+      alpha: 32
+      target_modules: [to_q, to_k, to_v, to_out]
+  teacher:
+    _target_: fastvideo.train.models.wan.WanModel
+    init_from: ../FastWan2.2-TI2V-5B-FullAttn-Diffusers
+    trainable: false
+    disable_custom_init_weights: true
+    attention_backend: FLASH_ATTN
+    flow_shift: 8
+  critic:
+    _target_: fastvideo.train.models.wan.WanModel
+    init_from: ../FastWan2.2-TI2V-5B-FullAttn-Diffusers
+    trainable: true
+    disable_custom_init_weights: true
+    attention_backend: FLASH_ATTN
+    flow_shift: 8
+    lora:
+      enable: true
+      rank: 8
+      alpha: 32
+      target_modules: [to_q, to_k, to_v, to_out]
+
+method:
+  _target_: fastvideo.train.methods.distribution_matching.dmd2.DMD2Method
+  rollout_mode: simulate
+  generator_update_interval: 5
+  real_score_guidance_scale: 3.5
+  dmd_denoising_steps: [1000, 757, 522]
+  min_timestep_ratio: 0.02
+  max_timestep_ratio: 0.98
+  fake_score_learning_rate: 1.0e-4
+  fake_score_betas: [0.0, 0.999]
+  fake_score_lr_scheduler: constant
+
+training:
+  dit_precision: bf16
+
+  distributed:
+    num_gpus: 8
+    sp_size: 1
+    tp_size: 1
+    hsdp_replicate_dim: 1
+    hsdp_shard_dim: 8
+
+  data:
+    data_path: ../Wan2.2-Syn-121x704x1280_subset400
+    preprocessed_data_type: t2v
+    dataloader_num_workers: 2
+    train_batch_size: 1
+    training_cfg_rate: 0.0
+    seed: 1000
+    num_latent_t: 31
+    num_height: 704
+    num_width: 1280
+    num_frames: 121
+
+  optimizer:
+    learning_rate: 1.0e-4
+    betas: [0.0, 0.999]
+    weight_decay: 0.01
+    lr_scheduler: constant
+    lr_warmup_steps: 0
+
+  loop:
+    max_train_steps: 50
+    gradient_accumulation_steps: 1
+
+  checkpoint:
+    output_dir: ../outputs/wan22_dmd_xpu_hsdp8
+    training_state_checkpointing_steps: 50
+    checkpoints_total_limit: 2
+
+  tracker:
+    project_name: distillation_wan
+    run_name: wan22_dmd_xpu_hsdp8
+
+  model:
+    enable_gradient_checkpointing_type: full
+    enable_torch_compile: false
+
+  vsa:
+    sparsity: 0.0
+
+callbacks:
+  grad_clip:
+    max_grad_norm: 1.0
+
+pipeline:
+  flow_shift: 8
